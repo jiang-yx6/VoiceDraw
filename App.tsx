@@ -1,118 +1,97 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import { useState } from "react"
+import { View, TouchableOpacity, StyleSheet } from "react-native"
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
+import { Home, User, Plus } from "lucide-react-native"
+import { AuthProvider } from "./src/context/AuthContext"
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import HomeScreen from "./src/screens/HomeScreen"
+import CreateScreen from "./src/screens/CreateScreen"
+import ProfileScreen from "./src/screens/ProfileScreen"
+import updateConfig from './update.json'
+import { UpdateProvider, Pushy } from "react-native-update";
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const {appKey} = updateConfig.android
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+const pushyClient = new Pushy({
+  appKey,
+});
+export default function App() {
+  const [activeTab, setActiveTab] = useState("Home")
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  const renderScreen = () => {
+    switch (activeTab) {
+      case "Home":
+        return <HomeScreen />
+      case "Create":
+        return <CreateScreen />
+      case "Profile":
+        return <ProfileScreen />
+      default:
+        return <HomeScreen />
+    }
+  }
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+    <UpdateProvider client={pushyClient}>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.container}>
+            <View style={styles.content}>{renderScreen()}</View>
+
+          <View style={styles.tabBar}>
+            <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab("Home")}>
+              <Home color={activeTab === "Home" ? "#007AFF" : "#8E8E93"} size={24} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.createButton} onPress={() => setActiveTab("Create")}>
+              <Plus color="#FFFFFF" size={24} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab("Profile")}>
+              <User color={activeTab === "Profile" ? "#007AFF" : "#8E8E93"} size={24} />
+            </TouchableOpacity>
+          </View>
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </AuthProvider>
+    </UpdateProvider>
+  )
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  content: {
+    flex: 1,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  tabBar: {
+    flexDirection: "row",
+    height: 60,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
-  highlight: {
-    fontWeight: '700',
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-});
-
-export default App;
+  createButton: {
+    backgroundColor: "#007AFF",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+})
