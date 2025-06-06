@@ -1,87 +1,96 @@
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView } from 'react-native'
-import React,{useState} from 'react'
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, ActivityIndicator,Button } from 'react-native'
+import React,{useState, useEffect} from 'react'
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native'
-
+import { api } from '../utils/apiServer'
+import { address } from '../utils/config'
+import PostModal from '../components/Home/PostModal'
 const CATEGORIES = ["推荐", "风景", "人物", "动物", "建筑", "抽象", "科幻", "动漫", "艺术"]
 
-const POSTS = [
-  {
-    id: "1",
-    image: "https://picsum.photos/id/1/400/400",
-    description: "日落时分的海滩风景，金色的阳光洒在沙滩上",
-    likes: 256,
-    comments: 42,
-  },
-  {
-    id: "2",
-    image: "https://picsum.photos/id/20/400/400",
-    description: "未来城市的天际线，霓虹灯闪烁，飞行器穿梭",
-    likes: 189,
-    comments: 23,
-  },
-  {
-    id: "3",
-    image: "https://picsum.photos/id/28/400/400",
-    description: "梦幻森林中的精灵，周围环绕着发光的蝴蝶",
-    likes: 324,
-    comments: 56,
-  },
-  {
-    id: "4",
-    image: "https://picsum.photos/id/42/400/400",
-    description: "宇宙深处的星云，五彩斑斓的星云气体",
-    likes: 412,
-    comments: 78,
-  },
-]
 export default function HomeScreen() {
 
     const [selectedCategory, setSelectedCategory] = useState("推荐")
+    const [posts, setPosts] = useState()
+    const [isLoading, setIsLoading] = useState(true)
+    const [isVisitPost, setIsVisitPost] = useState(false)
+    const [postId, setPostId] = useState(null)
 
-  return (
-    <View style={styles.container}>
-        <View style={styles.header}>
-            <Text style={[{fontSize:20},{fontWeight:"bold"}]}>AI绘图社区</Text>
-        </View>
-        <View style={styles.categoriesContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {
-                CATEGORIES.map((category)=>(
-                    <TouchableOpacity key={category} style={[styles.categoryItem,
-                        selectedCategory === category && styles.selectedCategory
-                    ]
-                    } onPress={()=> setSelectedCategory(category)}>
-                        <Text style={[{fontSize:15}]}>{category}</Text>
-                    </TouchableOpacity>
-                ))
+    useEffect(() => {
+        getPosts()
+    }, [])
+
+    const getPosts = async () => {
+        try {
+            const res = await api.community.getPosts()
+            console.log(res)
+            setPosts(res)
+        } catch (error) {
+            console.error("Failed to fetch posts:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+    const handleViewPost = (id) => {
+        console.log(`查看帖子${id}`)
+        setPostId(id)
+        setIsVisitPost(true)
+    }
+
+
+    if(isLoading){
+        return (
+            <View style={styles.containerLoading}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text style={{marginTop:10}}>加载中...</Text>
+            </View>
+        )
+    }
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={[{fontSize:20},{fontWeight:"bold"}]}>AI绘图社区</Text>
+            </View>
+            <PostModal  isVisitPost={isVisitPost} setIsVisitPost={setIsVisitPost} post={posts?.find(post=>post.post_id === postId)}/>
+            <View style={styles.categoriesContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {
+                    CATEGORIES.map((category)=>(
+                        <TouchableOpacity key={category} style={[styles.categoryItem,
+                            selectedCategory === category && styles.selectedCategory
+                        ]
+                        } onPress={()=> setSelectedCategory(category)}>
+                            <Text style={[{fontSize:15}]}>{category}</Text>
+                        </TouchableOpacity>
+                    ))
+                    }
+                </ScrollView>
+            </View>
+
+            <ScrollView style={styles.postsContainer}>
+                {   posts && 
+                    posts.map((post)=>(post.images.length > 0 && 
+                        <TouchableOpacity style={styles.postItem} key={post.post_id} onPress={()=>handleViewPost(post.post_id)}>
+                            <Image source={{uri: address + post.images?.[0]?.['image']}} style={styles.postImage}/>
+                            <Text style={styles.postTitle}>{post.title}</Text>
+                            <Text style={styles.postDescription}>{post.description.slice(0,10)}...</Text>
+                            <View style={styles.postActions}>
+                                <TouchableOpacity style={styles.actionButton}>
+                                {post?.is_liked ? <Heart size={24} fill="#FF0000" color="#FF0000"/> : <Heart size={24} color={"#333"} />}   
+                                    <Text style={styles.actionText}>{post.like_count}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.actionButton}>
+                                    <MessageCircle size={24} color="#333" />
+                                    <Text style={styles.actionText}>{post.comment_count}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.actionButton}>
+                                    <Share2 size={24} color="#333" />
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    ))
                 }
             </ScrollView>
         </View>
-
-        <ScrollView style={styles.postsContainer}>
-            {
-                POSTS.map((post)=>(
-                    <View style={styles.postItem} key={post.id}>
-                        <Image source={{uri: post.image}} style={styles.postImage}/>
-                        <Text style={styles.postDescription}>{post.description}</Text>
-                        <View style={styles.postActions}>
-                            <TouchableOpacity style={styles.actionButton}>
-                                <Heart size={24} color="#333" />
-                                <Text style={styles.actionText}>{post.likes}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionButton}>
-                                <MessageCircle size={24} color="#333" />
-                                <Text style={styles.actionText}>{post.comments}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionButton}>
-                                <Share2 size={24} color="#333" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                ))
-            }
-        </ScrollView>
-    </View>
   )
 }
 
@@ -89,6 +98,11 @@ const styles = StyleSheet.create({
     container:{
         flex:1,
         backgroundColor: "#FFFFFF",
+    },
+    containerLoading:{
+        flex:1,
+        justifyContent:"center",
+        alignItems:"center",
     },
     header:{
         padding:15,
@@ -137,6 +151,12 @@ const styles = StyleSheet.create({
         width:"100%",
         height:"300",
         borderRadius:10,
+    },
+    postTitle:{
+        fontSize:20,
+        fontWeight:"bold",
+        marginTop:10,
+        color:"#333",
     },
     postDescription:{
         fontSize:16,

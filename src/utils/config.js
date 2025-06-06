@@ -1,1 +1,3 @@
-export const address = "http://43.143.220.179:80"
+export const address = "http://10.29.82.150:8000"
+// "http://10.29.82.150:8000"
+//"http://43.143.220.179:80"

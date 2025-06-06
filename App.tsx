@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet } from "react-native"
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { Home, User, Plus } from "lucide-react-native"
 import { AuthProvider } from "./src/context/AuthContext"
+import { MessageProvider } from "./src/context/MessageContext"
 
 import HomeScreen from "./src/screens/HomeScreen"
 import CreateScreen from "./src/screens/CreateScreen"
@@ -34,6 +35,7 @@ export default function App() {
   return (
     <UpdateProvider client={pushyClient}>
       <AuthProvider>
+        <MessageProvider>
         <SafeAreaProvider>
           <SafeAreaView style={styles.container}>
             <View style={styles.content}>{renderScreen()}</View>
@@ -53,6 +55,7 @@ export default function App() {
           </View>
           </SafeAreaView>
         </SafeAreaProvider>
+        </MessageProvider>
       </AuthProvider>
     </UpdateProvider>
   )

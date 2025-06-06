@@ -1,4 +1,4 @@
-import { useState, useRef, useContext } from "react"
+import { useState, useRef, useContext, useEffect } from "react"
 import {
   View,
   Text,
@@ -15,30 +15,52 @@ import {
   Platform
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Mic, Send, Menu, X, Image as ImageIcon, Wand2, Sparkles, Eraser, Save, Share2, Plus, PenTool, Download } from "lucide-react-native"
+import {  Send, Menu, X, Image as ImageIcon, 
+  Wand2, Sparkles, Eraser, Save, Plus, PenTool, Download,
+  MessageCirclePlus 
+ } from "lucide-react-native"
 import { AuthContext } from "../context/AuthContext"
+import { useMessages } from "../context/MessageContext"
 import { api } from "../utils/apiServer"
 import { downloadImage } from "../utils/downloadImage"
 import WritePost from "../components/WritePost"
+import Microphone from "../components/Microphone"
+
 const { width } = Dimensions.get("window")
 const CreateScreen = () => {
   // 获取认证上下文
   const { getAuthHeader, isLogin } = useContext(AuthContext)
+  // 获取消息上下文
+  const { messages, addMessage, clearMessages } = useMessages()
   
   const [message, setMessage] = useState("")
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      sender: "ai",
-      content: "你好！我是AI绘图助手，请告诉我你想创作什么样的图片？",
-    },
-  ])
   const [isRecording, setIsRecording] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isImageViewVisible, setIsImageViewVisible] = useState(false)
   const [currentViewingImage, setCurrentViewingImage] = useState(null)
   const [isWritePost, setIsWritePost] = useState(false)
+  const [imageMessageList, setImageMessageList] = useState([])
   const sidebarAnimation = useRef(new Animated.Value(0)).current
+
+  const extractImageMessageList = () => {
+    return new Promise((resolve) => {
+      if (messages && messages.length > 0) {
+        // 从聊天记录中提取所有带图片的消息
+        const chatImages = messages
+          .filter((msg) => msg.hasImage && msg.imageUrl)
+          .map((msg, index) => ({
+            id: `chat_${index + 1}`,
+            url: msg.imageUrl,
+            // 保存原始消息，以便后续处理
+            originalMessage: msg,
+          }))
+        setImageMessageList(chatImages)
+        resolve(chatImages)
+      } else {
+        resolve([])
+      }
+    })
+  }
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1
@@ -66,7 +88,7 @@ const CreateScreen = () => {
       content: message,
     }
 
-    setMessages([...messages, newMessage])
+    addMessage(newMessage)
     setMessage("")
 
     // 发送请求前，先显示AI正在生成
@@ -75,7 +97,7 @@ const CreateScreen = () => {
       sender: "ai",
       content: "我正在根据你的描述生成图片，请稍等...",
     }
-    setMessages((prev) => [...prev, aiResponse])
+    addMessage(aiResponse)
 
     try {
       const response = await api.ai.generateImage({
@@ -92,7 +114,7 @@ const CreateScreen = () => {
           hasImage: true,
           imageUrl: imageUrl,
         }
-        setMessages((prev) => [...prev, imageResponse])
+        addMessage(imageResponse)
       } else {
         throw new Error("生成图片失败");
       }
@@ -103,7 +125,23 @@ const CreateScreen = () => {
         sender: "ai",
         content: "图片生成失败，请稍后再试。",
       }
-      setMessages((prev) => [...prev, errorResponse])
+      addMessage(errorResponse)
+    }
+  }
+
+  const handleWritePost = async () => {
+    // 等待图片列表更新完成
+    const chatImages = await extractImageMessageList()
+    
+    if(chatImages && chatImages.length > 0){
+      console.log("写入帖子", chatImages)
+      setIsWritePost(true)
+    } else {
+      Alert.alert(
+        "提示",
+        "请先生成图片",
+        [{ text: "确定", onPress: () => console.log("Alert closed") }]
+      )
     }
   }
 
@@ -121,14 +159,14 @@ const CreateScreen = () => {
     }
   }
 
-  const handleWritePost = () => {
-    console.log("写入帖子")
-    setIsWritePost(true)
+  const addNewChat = () => {
+    console.log("添加新聊天")
 
+    clearMessages()
   }
   const toggleRecording = () => {
     setIsRecording(!isRecording)
-
+    
     if (!isRecording) {
       // Simulate voice recording for 3 seconds
       setTimeout(() => {
@@ -158,11 +196,12 @@ const CreateScreen = () => {
         {item.hasImage && item.imageUrl && (
           <View style={styles.imageActions}>
             <TouchableOpacity style={styles.imageActionButton} onPress={()=>{handleWritePost()}}>
-              <PenTool size={15} color="#333" />
+              <PenTool size={25} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.imageActionButton} onPress={() => handleDownload(item.imageUrl)}>
-              <Download size={15} color="#333" />
+              <Download size={25} color="#333" />
             </TouchableOpacity>
+            
           </View>
         )}
       </View>
@@ -172,16 +211,21 @@ const CreateScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
 
-      <WritePost  style={styles.writePost} ImageUrl={currentViewingImage} visible={isWritePost} onClose={()=>{setIsWritePost(false)}}/>
+      <WritePost  style={styles.writePost} messages={messages} imageMessageList={imageMessageList} visible={isWritePost} onClose={()=>{setIsWritePost(false)}}/>
       
       <View style={styles.header}>
         <TouchableOpacity onPress={toggleSidebar}>
           <Menu size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>AI绘图助手</Text>
-        <TouchableOpacity onPress={() => {handleWritePost()}}>
-          <Plus size={26} color="#333" />
-        </TouchableOpacity>
+        <View style={[{flexDirection: "row",alignItems: "center",gap:"10"}]}>
+          <TouchableOpacity onPress={() => {addNewChat()}}>
+            <MessageCirclePlus size={26} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity  onPress={()=>{handleWritePost()}}>
+            <Save size={26} color="#333" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
@@ -191,9 +235,10 @@ const CreateScreen = () => {
       </ScrollView>
 
       <View style={styles.inputContainer}>
-        <TouchableOpacity style={[styles.micButton, isRecording && styles.recordingButton]} onPress={toggleRecording}>
+        {/* <TouchableOpacity style={[styles.micButton, isRecording && styles.recordingButton]} onPress={toggleRecording}>
           <Mic size={20} color={isRecording ? "#FFFFFF" : "#333"} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        <Microphone  handleVoiceInput={setMessage}/>
         <TextInput
           style={styles.input}
           placeholder="输入你的创意描述..."
@@ -298,6 +343,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F0F0F0",
   },
   headerTitle: {
+    marginRight:-20,
     fontSize: 18,
     fontWeight: "bold",
     color: "#333",
@@ -457,17 +503,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 1,
     marginBottom: 15,
-  },
-  imageActionButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 18,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    gap:10,
   },
 })
 

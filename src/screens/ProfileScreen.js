@@ -1,14 +1,15 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView , Modal, TextInput} from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Settings, Grid, Bookmark } from "lucide-react-native"
+import { Settings, Grid, Bookmark, Images } from "lucide-react-native"
 import { useState, useContext } from "react"
 import UserLogin from "../components/UserLogin"
 import { AuthContext } from "../context/AuthContext"
-
+import PostList from "../components/Profile/PostList"
+import CollectionList from "../components/Profile/CollectionList"
 const ProfileScreen = () => {
     const { isLogin, logout } = useContext(AuthContext)
     const [showLogin, setShowLogin] = useState(false)
-
+    const [ActiveTab, setActiveTab] = useState("posts")
     const handleLogin = () => setShowLogin(true)
     const handleLogout = () => logout()
 
@@ -17,6 +18,14 @@ const ProfileScreen = () => {
         setShowLogin(false)
     }
 
+    const renderProfileSection = () => {
+      switch(ActiveTab){
+        case "posts":
+          return (<PostList/>)
+        case "collections":
+          return (<CollectionList/>)
+      }
+    }
    return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -60,23 +69,17 @@ const ProfileScreen = () => {
         </View>
 
         <View style={styles.tabsContainer}>
-          <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-            <Grid size={20} color="#007AFF" />
+          <TouchableOpacity style={[styles.tab, ActiveTab === "posts" && styles.activeTab]} onPress={() => setActiveTab("posts")}>
+            <Grid size={25} color={ActiveTab === "posts" ? "#007AFF" : "#8E8E93"} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tab}>
-            <Bookmark size={20} color="#8E8E93" />
+          <TouchableOpacity style={[styles.tab, ActiveTab === "collections" && styles.activeTab]} onPress={() => setActiveTab("collections")}>
+            <Bookmark size={25} color={ActiveTab === "collections" ? "#007AFF" : "#8E8E93"} />
           </TouchableOpacity>
         </View>
 
         {isLogin ? (
         <View style={styles.galleryContainer}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
-            <Image
-              key={item}
-              source={{ uri: `https://picsum.photos/id/${item + 50}/200/200` }}
-              style={styles.galleryImage}
-            />
-          ))}
+          {renderProfileSection()}
         </View>
         ) : (
             <View style={styles.loginContainer}>

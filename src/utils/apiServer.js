@@ -16,6 +16,14 @@ const API_ENDPOINTS = {
     AI: {
         GENERATE_IMAGE: '/getai/',
     },
+    COMMUNITY: {
+        CREATE_POST: '/posts/create/',
+        GET_POSTS: 'posts/list/',
+        GET_POSTS_BY_USER: 'posts/list/user/',
+        GET_POST_BY_DETAIL: 'posts/detail/',
+        CREATE_COMMENT: 'comments/create/',
+        LIKE_POST: 'posts/like/',
+    },
 };
 
 // 不需要token的白名单路径
@@ -29,7 +37,7 @@ const apiServer = axios.create({
     baseURL: address,
     timeout: 5000,
     headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
     },
 });
 
@@ -127,6 +135,16 @@ const api = {
     // AI相关
     ai: {
         generateImage: (data) => apiServer.post(API_ENDPOINTS.AI.GENERATE_IMAGE, data),
+    },
+    // 社区相关
+    community: {
+        createPost: (data) => apiServer.post(API_ENDPOINTS.COMMUNITY.CREATE_POST, data),
+        getPosts: () => apiServer.get(API_ENDPOINTS.COMMUNITY.GET_POSTS),
+        getPostsByUser: () => apiServer.get(API_ENDPOINTS.COMMUNITY.GET_POSTS_BY_USER),
+        getPostDetail: (id) => apiServer.get(API_ENDPOINTS.COMMUNITY.GET_POST_BY_DETAIL + id + '/'),
+        createComment: (id, data) => apiServer.post(API_ENDPOINTS.COMMUNITY.CREATE_COMMENT + id + '/', data),
+        likePost: (id, data) => apiServer.post(API_ENDPOINTS.COMMUNITY.LIKE_POST + id + '/', data),
+        getLikedPosts: () => apiServer.get(API_ENDPOINTS.COMMUNITY.LIKE_POST+ '0/'),
     },
 };
 
